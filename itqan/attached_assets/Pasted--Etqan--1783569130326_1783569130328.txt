@@ -1,0 +1,860 @@
+🎯 نظام "Etqan" — برومت هندسي مُركّز
+
+نظرة عامة
+
+نظام متكامل لإدارة الموارد البشرية والعمليات، يعتمد على خمس ركائز أساسية مترابطة: محرر سري، تتبع بيانات الأجهزة/IP، ذكاء اصطناعي حوكم، اشتراكات بمزايا مقفولة، وعزل تام بين القطاعات.
+
+---
+
+1️⃣ المحرر السري (Hidden Owner Access)
+
+آلية الدخول
+
+التحفيز: ضغط متتالي 5 مرات خلال 3 ثوانٍ على شعار النظام
+
+طبقات المصادقة:
+
+```
+الطبقة الأولى: نافذة مشفرة لكلمة سر المحرر (تحدد أول تشغيل، تشفير AES-256)
+    ↓
+الطبقة الثانية: مصادقة ثنائية (TOTP أو بصمة الجهاز المسجّل)
+    ↓
+الطبقة الثالثة: ربط هوية Google OAuth
+    ↓
+PIN استرجاع احتياطي (مرة واحدة فقط)
+```
+
+تفاصيل طبقة Google OAuth:
+
+· ربط حساب المحرر بحساب Google شخصي محدد سلفًا (OAuth 2.0)
+· النظام لا يخزّن كلمة مرور Google نهائيًا — التحقق عبر Google فقط
+· استقبال تأكيد الهوية (user ID + email) ومقارنته بالحساب المسجّل
+· أي محاولة بحساب غير مطابق تُرفض وتُسجَّل كمحاولة اختراق
+
+PIN استرجاع احتياطي:
+
+· رقم سري مشفّر (bcrypt/Argon2)
+· صالح لمرة واحدة فقط
+· يُطلب تغييره فور الدخول
+
+شروط الأمان
+
+1. حد المحاولات:
+
+· 3 محاولات خاطئة → إغلاق أمني فوري
+· تسجيل + إشعار فوري بالمحاولة
+
+2. قفل جغرافي (Geo-Lock):
+
+· دول/مدن محددة فقط مصرح لها بالدخول
+
+3. عزل مطلق:
+
+· المدراء والموظفين في واجهات منفصلة
+· بدون أي أثر لبوابة المحرر
+
+صلاحيات المحرر الحصرية
+
+الصلاحية الوصف
+الكود المصدري، قواعد البيانات وصول كامل
+تعريف الباقات وربط المزايا إدارة الاشتراكات
+تعديل برومتات الذكاء الاصطناعي ضبط نظام الحوكمة
+الاطلاع على بيانات IP/الجهاز الخام لأي مستأجر بيانات كاملة
+
+⚠️ أمني: بيانات الاعتماد الحقيقية تُدار عبر متغيرات البيئة أو Secrets Manager، ولا تُكتب كنص صريح في الكود أو المستندات.
+
+---
+
+2️⃣ بيانات IP وجهاز الموظف
+
+التسجيل
+
+كل عملية Check-in/Check-out تسجّل:
+
+· عنوان IP
+· معرّف الجهاز (Device ID)
+· الموقع الجغرافي (Geofencing)
+· تحقق بيومتري بالكاميرا
+
+الأغراض
+
+1. كشف التلاعب بالحضور
+2. كشف مشاركة نفس الجهاز بين موظفين
+3. كشف الدخول من موقع/جهاز غير معتاد
+
+صلاحيات الاطلاع
+
+المستوى الصلاحية
+المحرر البيانات الخام كاملة (IP كامل، معرّف الجهاز، الموقع الدقيق) لأي مستأجر، مع تسجيل كل اطلاع
+المدير بيانات موظفي مؤسسته فقط، بشكل مبسّط ("دخول من جهاز غير معتاد ⚠️") بدون IP خام
+الموظف سجل حضوره الشخصي فقط
+
+ميزات إضافية
+
+لوحة الجلسات النشطة:
+
+· تسجيل خروج فوري عن بُعد لأي جهاز مشبوه
+
+حق النسيان:
+
+· عند حذف حساب الموظف، تتحول بيانات IP/الجهاز لمجهولة الهوية فورًا (إلا للالتزام القانوني)
+
+---
+
+3️⃣ الذكاء الاصطناعي (AI Engine + Governance)
+
+الوحدات المطلوبة
+
+1. أمن ذاتي — فحص ثغرات وسد ذاتي
+2. جدولة ورديات ذكية
+3. كشف حضور مشبوه
+4. مساعد أسئلة شائعة للموظف
+
+نظام الحوكمة
+
+قواعد البناء:
+
+· كل وحدة مبنية على System Prompt محدد يضبطه المحرر فقط
+· يجب أن يتضمن: الدور المحدد، حدود الصلاحية، وشرط أن أي قرار حساس لا يُنفَّذ تلقائياً إلا بموافقة المدير
+· مفتاح موافقة مستقل لكل قدرة في إعدادات المدير:
+  · [تنفيذ تلقائي] أو [اقتراح فقط بانتظار موافقتي]
+  · الوضع الافتراضي: "اقتراح فقط"
+
+صندوق الموافقات (Approval Queue):
+
+```
+┌─────────────────────────────────────┐
+│  📋 قرار يحتاج موافقتك              │
+│  السبب: [مكتوب بالعربي البسيط]      │
+│  ┌───────┐  ┌───────┐  ┌─────────┐ │
+│  │ موافقة │  │ رفض   │  │ موافقة  │ │
+│  │ فردية  │  │ فردي  │  │ جماعية  │ │
+│  └───────┘  └───────┘  └─────────┘ │
+└─────────────────────────────────────┘
+```
+
+Fail-Safe:
+
+· إذا لم يحدد المدير رأيه خلال مدة معينة → يُلغَى القرار تلقائيًا
+
+استثناء وحيد
+
+الإغلاق الأمني الفوري عند اختراق مؤكد يكون تلقائيًا (حماية طارئة)، لكنه يُسجّل ويُرفع للمحرر للمراجعة.
+
+سجل التدقيق
+
+كل برومت وكل قرار ذكاء اصطناعي يُسجّل في سجل تدقيق مشفّر (Hash Chaining) بحيث أي تلاعب لاحق يكسر السلسلة ويتكشف فورًا.
+
+---
+
+4️⃣ نظام الاشتراكات وقفل المزايا
+
+الباقات
+
+المستوى الباقة
+🥇 Premium
+🥈 Ultra
+🥉 Zenith
+
+آلية العمل
+
+Feature Flags:
+
+· جدول مركزي: كل ميزة مربوطة بـ"علم" يحدد أقل باقة تفتحها
+· المحرر فقط يقدر يعدّل الربط
+
+القاعدة الأساسية:
+
+أي ميزة غير متاحة في باقة المستأجر الحالية مقفولة فعلياً وغير قابلة للوصول أو التنفيذ:
+
+1. مش بس مخفية شكلياً
+2. تحقق (Validation) في السيرفر قبل تنفيذ أي طلب
+3. حتى المحاولة المباشرة للوصول ممنوعة
+
+إدارة الباقات
+
+قفل تلقائي عند تخفيض الباقة:
+
+· البيانات لا تُمسح
+· المزايا الزايدة تُجمّد فورًا
+· تُعاد تلقائيًا عند الرفع
+
+زر ترقية واضح:
+
+· جنب أي ميزة مقفولة
+· يوضح ما سيتفتح مع الترقية
+
+تجربة مجانية محدودة (Trial):
+
+· المحرر يفتح ميزة لمستأجر معين لعدد أيام محدد
+· تُقفل تلقائيًا بعد انتهاء المدة
+
+سجل تدقيق كامل:
+
+· أي ترقية أو تخفيض باقة، بالتاريخ والسبب
+
+---
+
+5️⃣ تخصص كل قطاع بمزاياه (Strict Industry Isolation)
+
+آلية الاختيار
+
+عند إنشاء مستأجر جديد، يختار المدير قطاع نشاطه من قائمة:
+
+1. تصوير وإنتاج
+2. إعلانات وتسويق
+3. أدوية وقطاع صحي
+4. صالونات وتجميل
+5. تجارة وتجزئة
+6. مطاعم
+7. أخرى (قالب عام)
+
+القاعدة الأساسية
+
+عزل فعلي على مستوى الكود والواجهة: المدير الذي يختار قطاعًا معينًا لا يرى أي حقول أو وحدات أو مصطلحات خاصة بقطاعات أخرى.
+
+أمثلة على الفصل
+
+القطاع الميزات الحصرية
+تصوير وإعلان حقول: موقع التصوير، المعدات، حالة التسليم (خام/مونتاج/نهائي) + حجز معدات — بدون أي أثر لحقول الأدوية
+أدوية وقطاع صحي وحدة تتبع الدُفعات وتواريخ الصلاحية + تقارير امتثال — بدون أي أثر لحقول التصوير
+صالونات وتجميل وحدة حجز مواعيد وعمولة كل خدمة — فقط، بدون وحدات غير مرتبطة
+
+استثناءات
+
+1. دمج قطاعات: المحرر فقط يستطيع دمج أكثر من قطاع لنفس المستأجر (بناءً على طلب المدير)، وهي حالة استثنائية موثّقة
+2. إضافة/تعديل قطاع: من لوحة المحرر المركزية فقط، ويتفعّل تلقائيًا لكل مستأجر يختار القطاع مستقبلاً
+
+---
+
+✅ التأكيد النهائي
+
+النظام يضمن عمليًا:
+
+الرقم الضمان
+1 الوصول للمحرر: فقط عبر الآلية السرية + المصادقة الثنائية + ربط Google OAuth + القفل الجغرافي
+2 بيانات IP والجهاز: محفوظة ومحكومة بصلاحيات دقيقة كما هو موضح
+3 قرارات الذكاء الاصطناعي: أي قرار حساس يتوقف عند صندوق الموافقات، إلا بتفعيل المدير صراحة للتنفيذ التلقائي
+4 الميزات خارج الباقة: مقفولة فعليًا في السيرفر، وليس فقط مخفية بصريًا
+5 عزل القطاعات: كل قطاع يعمل بمزاياه فقط، بدون أي تداخل مع قطاعات أخرى
+6 إدارة الأسرار: لا توجد بيانات اعتماد حقيقية في الكود أو الوثائق أو اللوجات — كل ما هو حساس يُدار عبر Secrets Manager ويُخزّن مشفّرًا
+
+---
+
+🏗️ الهيكل التقني المقترح
+
+بنية النظام
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend (React)                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
+│  │ Owner    │  │ Manager  │  │ Employee │            │
+│  │ Portal   │  │ Dashboard│  │ Portal   │            │
+│  └──────────┘  └──────────┘  └──────────┘            │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                    API Gateway (FastAPI)               │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │            Middleware Layer                     │   │
+│  │  • Authentication  • Authorization             │   │
+│  │  • Rate Limiting   • Geo-Fencing              │   │
+│  │  • Feature Flags   • Industry Isolation       │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                    Microservices                       │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐      │
+│  │   Auth     │  │   HR       │  │   AI       │      │
+│  │  Service   │  │  Service   │  │  Engine    │      │
+│  └────────────┘  └────────────┘  └────────────┘      │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐      │
+│  │  Device    │  │  Billing   │  │  Industry  │      │
+│  │  Tracking  │  │  Service   │  │  Modules   │      │
+│  └────────────┘  └────────────┘  └────────────┘      │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                    Data Layer                          │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐      │
+│  │ PostgreSQL │  │  Redis     │  │   AWS S3   │      │
+│  │  (Main)    │  │  (Cache)   │  │  (Storage) │      │
+│  └────────────┘  └────────────┘  └────────────┘      │
+│  ┌────────────────────────────────────────────────┐    │
+│  │         Audit Log (Blockchain-based)           │    │
+│  └────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
+
+قاعدة البيانات — الجداول الرئيسية
+
+```sql
+-- المستخدمين
+users (
+    id UUID PRIMARY KEY,
+    email VARCHAR(255) UNIQUE,
+    role ENUM('owner', 'manager', 'employee'),
+    google_oauth_id VARCHAR(255),
+    is_active BOOLEAN,
+    created_at TIMESTAMP,
+    last_login TIMESTAMP
+)
+
+-- المحرر (Owner)
+owner_credentials (
+    user_id UUID REFERENCES users(id),
+    master_password_hash VARCHAR(255),
+    totp_secret VARCHAR(255),
+    pin_hash VARCHAR(255),
+    geo_whitelist JSON,
+    failed_attempts INT,
+    locked_until TIMESTAMP
+)
+
+-- الباقات والاشتراكات
+subscriptions (
+    id UUID PRIMARY KEY,
+    tenant_id UUID,
+    plan ENUM('premium', 'ultra', 'zenith'),
+    start_date DATE,
+    end_date DATE,
+    status ENUM('active', 'suspended', 'trial'),
+    trial_days_remaining INT
+)
+
+-- Feature Flags
+feature_flags (
+    id UUID PRIMARY KEY,
+    feature_key VARCHAR(100) UNIQUE,
+    min_plan ENUM('premium', 'ultra', 'zenith'),
+    description TEXT,
+    is_auto_execution BOOLEAN DEFAULT FALSE
+)
+
+-- بيانات الجهاز والـ IP
+device_logs (
+    id UUID PRIMARY KEY,
+    employee_id UUID REFERENCES users(id),
+    ip_address VARCHAR(45),
+    device_id VARCHAR(255),
+    location JSON,
+    check_in TIMESTAMP,
+    check_out TIMESTAMP,
+    is_suspicious BOOLEAN DEFAULT FALSE,
+    action_type ENUM('check_in', 'check_out')
+)
+
+-- قطاعات النشاط
+industries (
+    id UUID PRIMARY KEY,
+    industry_code VARCHAR(50) UNIQUE,
+    name_ar VARCHAR(100),
+    name_en VARCHAR(100),
+    features JSON,
+    is_active BOOLEAN DEFAULT TRUE
+)
+
+-- سجل التدقيق (Hash Chaining)
+audit_logs (
+    id UUID PRIMARY KEY,
+    previous_hash VARCHAR(255),
+    current_hash VARCHAR(255),
+    event_type VARCHAR(50),
+    event_data JSON,
+    timestamp TIMESTAMP,
+    user_id UUID REFERENCES users(id)
+)
+
+-- صندوق الموافقات
+approval_queue (
+    id UUID PRIMARY KEY,
+    decision TEXT,
+    reason TEXT,
+    suggested_by VARCHAR(255),
+    status ENUM('pending', 'approved', 'rejected', 'expired'),
+    expires_at TIMESTAMP,
+    created_by_ai BOOLEAN DEFAULT TRUE
+)
+```
+
+الكود الأساسي — نقاط البداية
+
+1. مصادقة المحرر (Owner Auth)
+
+```python
+# auth/owner_auth.py
+import secrets
+import hashlib
+import pyotp
+import jwt
+from cryptography.fernet import Fernet
+
+class OwnerAuthenticator:
+    def __init__(self, secrets_manager):
+        self.secrets = secrets_manager
+        self.max_attempts = 3
+        self.lock_duration = 3600  # 1 hour
+        
+    def trigger_hidden_ui(self, click_pattern):
+        """تحفيز واجهة المحرر عند 5 ضغطات خلال 3 ثوانٍ"""
+        if click_pattern == [0,0,0,0,0]:  # 5 clicks
+            return True
+        return False
+    
+    def authenticate(self, password, totp_code, google_token, pin=None):
+        """طبقات المصادقة الأربع"""
+        # الطبقة الأولى: كلمة السر (AES-256)
+        if not self.verify_master_password(password):
+            self.log_failed_attempt()
+            return {"success": False, "error": "Invalid master password"}
+        
+        # الطبقة الثانية: TOTP
+        if not self.verify_totp(totp_code):
+            self.log_failed_attempt()
+            return {"success": False, "error": "Invalid TOTP"}
+        
+        # الطبقة الثالثة: Google OAuth
+        google_verified = self.verify_google(google_token)
+        if not google_verified:
+            self.log_failed_attempt()
+            return {"success": False, "error": "Google verification failed"}
+        
+        # PIN احتياطي (اختياري)
+        if pin:
+            if not self.verify_backup_pin(pin):
+                return {"success": False, "error": "Invalid backup PIN"}
+            # طلب تغيير PIN فور الدخول
+            return {"success": True, "requires_pin_change": True}
+        
+        # تسجيل الدخول الناجح
+        self.reset_attempts()
+        return {"success": True, "token": self.generate_session_token()}
+    
+    def verify_google(self, token):
+        """التحقق من هوية Google وربطها بالحساب المسجل"""
+        # التحقق من الـ token مع Google
+        google_info = self.decode_google_token(token)
+        
+        # مقارنة الـ email/user_id مع الحساب المسجل
+        stored_owner_email = self.secrets.get('OWNER_EMAIL')
+        if google_info['email'] != stored_owner_email:
+            self.log_suspicious_attempt(google_info['email'])
+            return False
+        return True
+    
+    def verify_geo_location(self, ip_address):
+        """Geo-Lock: التحقق من الموقع الجغرافي"""
+        allowed_countries = self.secrets.get('ALLOWED_COUNTRIES')
+        location = self.get_location_from_ip(ip_address)
+        
+        if location['country'] not in allowed_countries:
+            self.log_geo_block(ip_address, location)
+            return False
+        return True
+```
+
+2. ميزات الباقات (Feature Flags)
+
+```python
+# billing/feature_flags.py
+from enum import Enum
+
+class Plan(Enum):
+    PREMIUM = "premium"
+    ULTRA = "ultra"
+    ZENITH = "zenith"
+
+class FeatureFlag:
+    def __init__(self, db):
+        self.db = db
+        
+    def is_feature_available(self, tenant_id, feature_key):
+        """التحقق مما إذا كانت الميزة متاحة للمستأجر"""
+        # جلب باقة المستأجر
+        subscription = self.db.get_subscription(tenant_id)
+        if not subscription:
+            return False
+            
+        # جلب الحد الأدنى للباقة لهذه الميزة
+        min_plan = self.db.get_feature_min_plan(feature_key)
+        
+        # مقارنة الباقات
+        plan_rank = {
+            Plan.PREMIUM.value: 1,
+            Plan.ULTRA.value: 2,
+            Plan.ZENITH.value: 3
+        }
+        
+        return plan_rank[subscription['plan']] >= plan_rank[min_plan]
+    
+    def get_upgrade_benefits(self, current_plan, feature_key):
+        """ما الذي سيتفتح عند الترقية"""
+        min_plan = self.db.get_feature_min_plan(feature_key)
+        
+        if min_plan == current_plan:
+            return None
+            
+        return {
+            'feature': feature_key,
+            'current_plan': current_plan,
+            'required_plan': min_plan,
+            'benefits': self.db.get_plan_benefits(min_plan)
+        }
+```
+
+3. عزل القطاعات (Industry Isolation)
+
+```python
+# industry/isolation.py
+class IndustryIsolation:
+    def __init__(self):
+        self.industry_features = {
+            'photography': {
+                'fields': ['shooting_location', 'equipment', 'delivery_status'],
+                'modules': ['equipment_booking', 'project_tracking'],
+                'terms': ['final_cut', 'raw_footage', 'montage']
+            },
+            'healthcare': {
+                'fields': ['batch_number', 'expiry_date', 'compliance_report'],
+                'modules': ['batch_tracking', 'compliance_management'],
+                'terms': ['approval', 'sterile', 'clinical']
+            },
+            'salon': {
+                'fields': ['appointment_time', 'commission_rate'],
+                'modules': ['appointment_booking', 'commission_tracking'],
+                'terms': ['service', 'client', 'booking']
+            },
+            'retail': {
+                'fields': ['inventory_count', 'store_location'],
+                'modules': ['inventory_management', 'sales_analytics'],
+                'terms': ['product', 'stock', 'checkout']
+            }
+        }
+    
+    def get_industry_schema(self, industry_code):
+        """الحصول على مخطط القطاع المحدد"""
+        if industry_code not in self.industry_features:
+            return self.get_default_schema()
+        
+        return {
+            'fields': self.industry_features[industry_code]['fields'],
+            'modules': self.industry_features[industry_code]['modules'],
+            'terms': self.industry_features[industry_code]['terms']
+        }
+    
+    def filter_data_by_industry(self, data, industry_code):
+        """تصفية البيانات بحيث يرى المستخدم فقط ما يخص قطاعه"""
+        industry_schema = self.get_industry_schema(industry_code)
+        filtered_data = {}
+        
+        for key, value in data.items():
+            if key in industry_schema['fields']:
+                filtered_data[key] = value
+        
+        return filtered_data
+    
+    def merge_industries(self, industry_codes):
+        """دمج قطاعات متعددة (للمحرر فقط)"""
+        merged = {
+            'fields': [],
+            'modules': [],
+            'terms': []
+        }
+        
+        for code in industry_codes:
+            schema = self.get_industry_schema(code)
+            merged['fields'].extend(schema['fields'])
+            merged['modules'].extend(schema['modules'])
+            merged['terms'].extend(schema['terms'])
+        
+        # إزالة التكرارات
+        merged['fields'] = list(set(merged['fields']))
+        merged['modules'] = list(set(merged['modules']))
+        merged['terms'] = list(set(merged['terms']))
+        
+        return merged
+```
+
+4. نظام الذكاء الاصطناعي مع الحوكمة
+
+```python
+# ai/ai_engine.py
+class AIEngine:
+    def __init__(self, db, approval_queue):
+        self.db = db
+        self.approval_queue = approval_queue
+        
+    def process_decision(self, tenant_id, decision_type, data, auto_execute=False):
+        """معالجة قرارات الذكاء الاصطناعي مع نظام الحوكمة"""
+        
+        # توليد القرار
+        decision = self.generate_decision(decision_type, data)
+        
+        # التحقق من إعدادات المستأجر
+        settings = self.db.get_tenant_settings(tenant_id)
+        
+        if settings.get('auto_execute', {}).get(decision_type, False):
+            # تنفيذ تلقائي
+            if not self.is_critical_decision(decision):
+                return self.execute_decision(decision)
+            else:
+                # حتى التنفيذ التلقائي يتطلب موافقة للقرارات الحساسة
+                return self.add_to_approval_queue(decision, "قرار حساس يتطلب موافقتك")
+        else:
+            # وضع الاقتراح فقط
+            return self.add_to_approval_queue(
+                decision, 
+                f"يقترح الذكاء الاصطناعي {decision_type}: {decision['summary']}"
+            )
+    
+    def add_to_approval_queue(self, decision, reason):
+        """إضافة القرار إلى صندوق الموافقات"""
+        approval_id = self.approval_queue.create({
+            'decision': decision,
+            'reason': reason,
+            'expires_at': datetime.now() + timedelta(hours=24),
+            'status': 'pending',
+            'created_by_ai': True
+        })
+        
+        return {
+            'status': 'pending_approval',
+            'approval_id': approval_id,
+            'message': 'تم إضافة القرار إلى صندوق الموافقات'
+        }
+    
+    def handle_emergency(self, incident):
+        """الإغلاق الأمني الفوري (استثناء)"""
+        if self.is_confirmed_breach(incident):
+            # تنفيذ فوري بدون موافقة
+            self.emergency_shutdown(incident)
+            
+            # تسجيل وتنبيه المحرر
+            self.db.log_emergency({
+                'incident': incident,
+                'timestamp': datetime.now(),
+                'action': 'emergency_shutdown'
+            })
+            
+            self.notify_owner(incident)
+            return {'status': 'emergency_shutdown_executed'}
+        
+        return {'status': 'investigation_needed'}
+    
+    def audit_decision(self, decision_id):
+        """سجل تدقيق مع Hash Chaining"""
+        decision = self.db.get_decision(decision_id)
+        previous = self.db.get_last_audit_entry()
+        
+        # بناء السلسلة
+        current_hash = hashlib.sha256(
+            f"{previous['hash']}:{decision_id}:{decision['data']}".encode()
+        ).hexdigest()
+        
+        # تسجيل في سجل التدقيق
+        self.db.audit_log({
+            'previous_hash': previous['hash'],
+            'current_hash': current_hash,
+            'decision_id': decision_id,
+            'timestamp': datetime.now()
+        })
+        
+        return current_hash
+```
+
+5. تتبع الأجهزة والـ IP
+
+```python
+# tracking/device_tracking.py
+class DeviceTracker:
+    def __init__(self, db):
+        self.db = db
+        self.suspicious_threshold = 2  # أكثر من جهازين مختلفين
+        
+    def track_check_in(self, employee_id, device_info, location):
+        """تسجيل عملية check-in"""
+        # حفظ البيانات
+        log_entry = {
+            'employee_id': employee_id,
+            'ip_address': device_info['ip'],
+            'device_id': device_info['device_id'],
+            'location': location,
+            'check_in': datetime.now()
+        }
+        
+        # التحقق من السلوك المشبوه
+        suspicious = self.detect_suspicious_activity(employee_id, device_info)
+        
+        if suspicious:
+            log_entry['is_suspicious'] = True
+            self.notify_manager(employee_id, suspicious)
+        
+        return self.db.create_device_log(log_entry)
+    
+    def detect_suspicious_activity(self, employee_id, current_device):
+        """كشف التلاعب بالحضور"""
+        # 1. مشاركة الجهاز بين موظفين
+        other_employees = self.db.get_employees_by_device(current_device['device_id'])
+        if len(other_employees) > 1:
+            return {
+                'type': 'shared_device',
+                'details': f"الجهاز مستخدم من قبل {len(other_employees)} موظفين آخرين",
+                'severity': 'high'
+            }
+        
+        # 2. جهاز غير معتاد للموظف
+        known_devices = self.db.get_known_devices(employee_id)
+        if current_device['device_id'] not in known_devices:
+            return {
+                'type': 'unusual_device',
+                'details': 'جهاز جديد غير مسجل مسبقاً',
+                'severity': 'medium'
+            }
+        
+        # 3. موقع غير معتاد
+        usual_locations = self.db.get_usual_locations(employee_id)
+        if self.is_unusual_location(current_device['location'], usual_locations):
+            return {
+                'type': 'unusual_location',
+                'details': f"موقع جديد: {current_device['location']}",
+                'severity': 'medium'
+            }
+        
+        return None
+    
+    def anonymize_employee_data(self, employee_id):
+        """حق النسيان: تحويل البيانات لمجهولة الهوية"""
+        self.db.anonymize_device_logs(employee_id)
+        
+        return {
+            'status': 'anonymized',
+            'message': 'تم تحويل بيانات الجهاز والـ IP لمجهولة الهوية'
+        }
+```
+
+6. Middleware — مكافحة الوصول للميزات المقفولة
+
+```python
+# middleware/feature_guard.py
+from fastapi import Request, HTTPException
+
+class FeatureGuardMiddleware:
+    def __init__(self, feature_flag_service, industry_service):
+        self.feature_flags = feature_flag_service
+        self.industry = industry_service
+    
+    async def __call__(self, request: Request, call_next):
+        """التحقق قبل أي طلب من أن الميزة متاحة"""
+        
+        # استخراج الميزة المطلوبة من المسار
+        feature_key = self.extract_feature_from_route(request.url.path)
+        
+        if feature_key:
+            # التحقق من صلاحية الباقة
+            tenant_id = request.state.tenant_id
+            if not self.feature_flags.is_feature_available(tenant_id, feature_key):
+                raise HTTPException(
+                    status_code=403,
+                    detail="هذه الميزة غير متاحة في باقاتك الحالية"
+                )
+            
+            # التحقق من عزل القطاع
+            tenant_industry = request.state.tenant_industry
+            if not self.industry.is_allowed(feature_key, tenant_industry):
+                raise HTTPException(
+                    status_code=403,
+                    detail="هذه الميزة غير متاحة في قطاع نشاطك"
+                )
+        
+        response = await call_next(request)
+        return response
+    
+    def extract_feature_from_route(self, path):
+        """استخراج الميزة من المسار"""
+        # مثال: /api/photography/equipment → 'equipment_booking'
+        mapping = {
+            '/api/photography': 'equipment_booking',
+            '/api/healthcare': 'batch_tracking',
+            '/api/salon': 'appointment_booking',
+            '/api/analytics': 'advanced_analytics',
+            '/api/ai': 'ai_features'
+        }
+        
+        for route, feature in mapping.items():
+            if path.startswith(route):
+                return feature
+        
+        return None
+```
+
+🚀 نقاط البداية للتنفيذ
+
+اليوم 1-3: البنية الأساسية
+
+· إعداد PostgreSQL + Redis
+· إنشاء هيكل قاعدة البيانات
+· إعداد FastAPI + Middleware
+· تنفيذ المصادقة الأساسية
+
+اليوم 4-7: المحرر والأمان
+
+· تنفيذ آلية التحفيز السرية
+· إعداد Google OAuth 2.0
+· TOTP + PIN احتياطي
+· Geo-Lock
+
+اليوم 8-12: نظام الباقات والمزايا
+
+· جدول Feature Flags
+· قفل المزايا على مستوى السيرفر
+· نظام الترقيات والتجارب المجانية
+
+اليوم 13-18: الذكاء الاصطناعي والحوكمة
+
+· System Prompts لكل وحدة
+· صندوق الموافقات
+· سجل التدقيق المشفر (Hash Chaining)
+
+اليوم 19-23: تتبع الأجهزة والـ IP
+
+· نظام Check-in/Check-out
+· كشف السلوك المشبوه
+· لوحة الجلسات النشطة
+
+اليوم 24-27: عزل القطاعات
+
+· تعريف القطاعات والميزات الحصرية
+· تصفية الواجهة والبيانات حسب القطاع
+· دمج القطاعات (للمحرر فقط)
+
+اليوم 28-30: اختبارات الأمان والتكامل
+
+· اختبار اختراق للمحرر
+· اختبار قفل المزايا
+· اختبار عزل القطاعات
+· مراجعة سجل التدقيق
+
+---
+
+📋 ملخص المهام المطلوبة
+
+الرقم المهمة الأولوية
+1 إنشاء قاعدة البيانات والجداول الأساسية 🔴 عالية
+2 تنفيذ آلية المحرر السرية (5 ضغطات) 🔴 عالية
+3 إعداد Google OAuth + TOTP 🔴 عالية
+4 Geo-Lock للمحرر 🔴 عالية
+5 نظام Feature Flags والاشتراكات 🟡 متوسطة
+6 Middleware لقفل المزايا 🟡 متوسطة
+7 نظام تتبع الأجهزة و IP 🟡 متوسطة
+8 كشف السلوك المشبوه 🟡 متوسطة
+9 وحدات الذكاء الاصطناعي 🟢 منخفضة (تطوير مستقبلي)
+10 صندوق الموافقات 🟢 منخفضة
+11 عزل القطاعات 🟡 متوسطة
+12 حق النسيان (تجهيل البيانات) 🟡 متوسطة
+13 سجل التدقيق المشفر 🟢 منخفضة
+
+---
+
+ملاحظة: هذا الهيكل الهندسي الكامل يمكن إعادة بلته وتعديله حسب احتياجاتك. كل وحدة مبنية لتكون مستقلة وقابلة للتوسع، مع تركيز على الأمان والعزل التام بين الصلاحيات المختلفة.

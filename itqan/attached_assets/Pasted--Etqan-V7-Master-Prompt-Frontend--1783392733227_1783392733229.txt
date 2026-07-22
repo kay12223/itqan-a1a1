@@ -1,0 +1,625 @@
+# Etqan V7 - Master Prompt
+
+اقرأ المشروع بالكامل أولاً قبل تنفيذ أي شيء.
+
+افحص:
+
+* Frontend
+* Backend
+* Database
+* APIs
+* Routes
+* Services
+* Components
+* Authentication
+* Permissions
+* Subscriptions
+
+لا تحذف أي ميزة موجودة.
+
+لا تستخدم بيانات وهمية أو Placeholder.
+
+لا تنشئ صفحات فارغة.
+
+أي ميزة جديدة يجب أن تندمج مع النظام الحالي.
+
+أي خطأ يتم اكتشافه يجب إصلاحه.
+
+اجعل جميع الأكواد Production Ready.
+
+---
+
+# الهدف
+
+تحويل المشروع إلى منصة SaaS مؤسسية متكاملة قابلة للتخصيص لأي نشاط تجاري مثل:
+
+* شركات التصوير والإنتاج
+* وكالات التسويق
+* الصالونات
+* المطاعم
+* شركات البرمجيات
+* التجارة
+* التعليم
+* المقاولات
+* القطاع الطبي
+* أي نشاط آخر
+
+مع الحفاظ على نواة موحدة للنظام.
+
+---
+
+# البنية الأساسية
+
+قم ببناء وتحسين:
+
+* Clean Architecture
+* Modular Architecture
+* Multi Tenant Architecture
+* Secure API Architecture
+* Scalable Infrastructure
+* Event Driven Structure
+* Stateless Services
+* Queue System
+* Logging System
+
+---
+
+# قاعدة البيانات
+
+أنشئ أو أكمل جميع الجداول والعلاقات المطلوبة:
+
+* Users
+* Roles
+* Permissions
+* Tenants
+* Companies
+* Employees
+* Departments
+* Branches
+* Sessions
+* Attendance
+* Leaves
+* Projects
+* Tasks
+* Rewards
+* Penalties
+* Notifications
+* Audit Logs
+* Subscriptions
+* Feature Flags
+* Industry Packs
+* Custom Fields
+* Tickets
+* Spreadsheets
+* Points
+* Settings
+* Learning Progress
+* Performance Reviews
+* AI Logs
+* Automation Rules
+* Developer Apps
+* Backup Snapshots
+* Storage Usage
+
+مع:
+
+* UUID
+* Foreign Keys
+* Indexes
+* Soft Delete
+* Transactions
+* Audit Fields
+
+---
+
+# Authentication
+
+قم ببناء:
+
+* Login
+* Register
+* Email Verification
+* Password Reset
+* JWT
+* Refresh Token
+* Secure Cookies
+* Session Control
+* Device Verification
+* Two Factor Authentication
+
+---
+
+# Authorization
+
+قم ببناء نظام صلاحيات كامل:
+
+* Editor
+* Owner
+* Admin
+* Manager
+* Supervisor
+* HR
+* Employee
+* Client
+* Developer
+* Partner
+* Guest
+
+مع RBAC ديناميكي قابل للتوسع.
+
+---
+
+# Hidden Editor
+
+قم ببناء لوحة المحرر السرية.
+
+الدخول إليها يكون من خلال:
+
+* الضغط على شعار Etqan خمس مرات.
+* نافذة سرية.
+* كلمة مرور مشفرة.
+* AES-256.
+* Two Factor Authentication.
+* Device Verification.
+* Geo Lock.
+
+بعد ذلك يتم فتح لوحة المحرر فقط.
+
+ولا يسمح لأي مستخدم آخر بالدخول إليها.
+
+---
+
+# Dashboard
+
+قم ببناء لوحة تحكم احترافية تحتوي على:
+
+* Statistics
+* Charts
+* Reports
+* Notifications
+* Activity Feed
+* Quick Actions
+* Global Search
+* Responsive Design
+* Dark Mode
+
+---
+
+# Subscription System
+
+قم ببناء:
+
+* Premium
+* Ultra
+* Zenith
+
+مع:
+
+* Feature Flags
+* Trial
+* Upgrade
+* Downgrade
+* Renewal
+* Freeze Features
+* Restore Features
+* Subscription History
+
+---
+
+# Industry Engine
+
+قم ببناء نظام اختيار النشاط التجاري.
+
+مثل:
+
+* Photography
+* Marketing
+* Salon
+* Medical
+* Restaurant
+* Retail
+* Education
+* Construction
+* Software
+* General
+
+بحيث تتم إضافة حقول ووحدات مخصصة دون تغيير النواة الأساسية للنظام.
+
+---
+
+# Employee Management
+
+قم ببناء:
+
+* Employees
+* Departments
+* Branches
+* Contracts
+* Documents
+* Employee Profiles
+* Employee Activity
+* Employee Archive
+
+---
+
+# Attendance System
+
+قم ببناء:
+
+* Dynamic QR
+* Face Verification
+* GPS Verification
+* Geofencing
+* Device Verification
+* Offline Mode
+* Auto Sync
+* Check In
+* Check Out
+* Work Hours
+* Overtime
+* Attendance Reports
+* Fraud Detection
+
+---
+
+# Project Management
+
+قم ببناء:
+
+* Projects
+* Clients
+* Kanban
+* Timeline
+* Calendar
+* Milestones
+* Budget Tracking
+* Files
+* Comments
+* Mentions
+* Notifications
+
+---
+
+# Task Management
+
+قم ببناء:
+
+* Tasks
+* Sub Tasks
+* Priorities
+* Labels
+* Checklist
+* Dependencies
+* Time Tracking
+* Assignment
+* Activity History
+
+---
+
+# Leave Management
+
+قم ببناء:
+
+* Leave Requests
+* Approvals
+* Rejections
+* Leave Balance
+* Leave Reports
+* Notifications
+
+---
+
+# Rewards & Penalties
+
+قم ببناء:
+
+* Rewards
+* Penalties
+* Points
+* Approval Workflow
+* Employee History
+
+---
+
+# Spreadsheet Engine
+
+قم ببناء:
+
+* Excel Style Sheets
+* Formulas
+* Charts
+* Filtering
+* Sorting
+* Templates
+* Import
+* Export
+* Ask Your Data
+
+---
+
+# AI Platform
+
+قم ببناء:
+
+* AI Assistant
+* AI Analytics
+* AI Reports
+* AI Insights
+* AI Recommendations
+* AI Security
+* AI Dashboard
+
+---
+
+# AI Governance
+
+قم ببناء:
+
+* Approval Queue
+* Confidence Score
+* Explainable AI
+* Human Approval
+* AI Logs
+* AI Settings
+
+أي قرار حساس يجب أن يمر بالموافقة البشرية حسب الإعدادات.
+
+---
+
+# Workflow Automation
+
+قم ببناء:
+
+* Triggers
+* Conditions
+* Actions
+* Schedules
+* Templates
+* Automation Logs
+* Retry System
+
+---
+
+# Design Studio
+
+قم ببناء:
+
+* Visual Builder
+* Theme Builder
+* Drag & Drop
+* Layout Builder
+* Component Library
+* Live Preview
+* Version History
+* Rollback
+* Staging
+* Production
+
+---
+
+# White Label
+
+قم ببناء:
+
+* Logo Customization
+* Brand Colors
+* Fonts
+* Login Branding
+* Dashboard Branding
+* Email Branding
+
+---
+
+# Notifications
+
+قم ببناء:
+
+* In-App Notifications
+* Email Notifications
+* Push Notifications
+* WhatsApp Ready
+* Notification Center
+
+---
+
+# Developer Platform
+
+قم ببناء:
+
+* REST API
+* API Keys
+* OAuth
+* Webhooks
+* SDK Ready
+* API Documentation
+* Sandbox Environment
+
+---
+
+# Marketplace
+
+قم ببناء:
+
+* Addons Marketplace
+* Install
+* Update
+* Remove
+* Reviews
+* Revenue Share Ready
+
+---
+
+# Employee PWA
+
+قم ببناء:
+
+* Attendance
+* Leaves
+* Tasks
+* Notifications
+* Profile
+* Offline Mode
+* FAQ AI Assistant
+
+---
+
+# Client Portal
+
+قم ببناء:
+
+* Project Tracking
+* Files
+* Comments
+* Approvals
+* Invoices
+* Notifications
+* Electronic Signature
+
+---
+
+# Reports
+
+قم ببناء:
+
+* Employee Reports
+* Attendance Reports
+* Project Reports
+* Performance Reports
+* Revenue Reports
+* AI Reports
+* PDF Export
+* Excel Export
+* Scheduled Reports
+
+---
+
+# Backup System
+
+قم ببناء:
+
+* Continuous Backup
+* Snapshot Backup
+* Incremental Backup
+* Full Backup
+* Cold Backup
+* Point In Time Recovery
+* Backup Dashboard
+
+---
+
+# Disaster Recovery
+
+قم ببناء:
+
+* Failover
+* Auto Recovery
+* Disaster Simulation
+* Recovery Dashboard
+* Recovery Logs
+
+---
+
+# Deployment
+
+قم بإعداد:
+
+* Blue Green Deployment
+* Canary Deployment
+* Rolling Updates
+* Auto Rollback
+
+مع Zero Downtime.
+
+---
+
+# Storage System
+
+قم ببناء:
+
+* Object Storage
+* Media Storage
+* File Versioning
+* Compression
+* Archive Storage
+* Cold Storage
+* Smart Cache
+* Storage Monitoring
+
+---
+
+# Monitoring
+
+قم ببناء:
+
+* CPU Monitoring
+* Memory Monitoring
+* Database Monitoring
+* API Monitoring
+* Queue Monitoring
+* Storage Monitoring
+* Error Monitoring
+* Health Dashboard
+
+---
+
+# Security
+
+قم ببناء:
+
+* SQL Injection Protection
+* XSS Protection
+* CSRF Protection
+* Rate Limiting
+* CSP Headers
+* Brute Force Protection
+* Threat Detection
+* Intrusion Detection
+* Encryption
+* Secret Management
+
+---
+
+# Audit System
+
+قم ببناء:
+
+* Audit Logs
+* Security Logs
+* Login Logs
+* API Logs
+* AI Logs
+* Automation Logs
+* Backup Logs
+
+مع Hash Chaining لمنع التلاعب بالسجلات.
+
+---
+
+# Final Review
+
+بعد الانتهاء:
+
+* افحص المشروع بالكامل.
+* أصلح جميع الأخطاء.
+* أصلح الأداء.
+* راجع جميع APIs.
+* راجع قاعدة البيانات.
+* راجع الصلاحيات.
+* راجع الاشتراكات.
+* راجع الذكاء الاصطناعي.
+* راجع الأمان.
+* راجع النسخ الاحتياطي.
+* راجع التخزين.
+* راجع جميع الوحدات.
+
+لا تعتبر المهمة منتهية إلا إذا أصبح المشروع:
+
+* Production Ready.
+* Secure.
+* Scalable.
+* Stable.
+* Multi Tenant.
+* White Label Ready.
+* Zero Data Loss Ready.
+* High Performance.
+* Fully Integrated.

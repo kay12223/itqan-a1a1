@@ -1,0 +1,5 @@
+- [Python runtime not preinstalled](python-runtime-not-preinstalled.md) — fresh env lacks python3/uvicorn despite backend/requirements.txt; install python-3.11 module + requirements before running start.sh.
+- [FastAPI include_router must come last](fastapi-include-router-placement.md) — routes defined on api router after app.include_router(api) are silently ignored; always call include_router after all @api.* definitions.
+- [ObjectId safety wrapper](objectid-safety.md) — use safe_object_id() helper (defined in server.py) instead of raw ObjectId() for all user-supplied IDs; returns 400 instead of 500 on invalid input.
+- [FastAPI Depends() forward-reference ordering](fastapi-forward-reference-in-depends.md) — a function using Depends(g) must be defined AFTER g, or app crashes at startup with NameError.
+- [Frontend is a prebuilt static bundle](frontend-build-caching.md) — start.sh skips `npm run build` if frontend/build exists; rebuild manually after any frontend edit or changes won't show.

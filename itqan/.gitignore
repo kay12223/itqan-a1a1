@@ -1,0 +1,25 @@
+# Python
+backend/__pycache__/
+backend/*.pyc
+*.pyc
+*.pyo
+.env.local
+
+# Node / React build artifacts
+frontend/node_modules/
+frontend/build/
+node_modules/
+
+# MongoDB runtime data
+/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Replit internal state (wasm snapshots — very long filenames break Windows MAX_PATH)
+.local/

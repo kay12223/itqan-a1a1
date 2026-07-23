@@ -718,21 +718,23 @@ async def login(body: LoginInput, request: Request):
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="تم تعطيل هذا الحساب. تواصل مع المدير")
     token = create_access_token(str(user["_id"]), user["role"])
-    company = await db.companies.find_one({"_id": user["company_id"]})
-    client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "غير معروف")
-    device_info = request.headers.get("User-Agent", "غير محدد")
-    await log_activity(
-        company_id=user["company_id"],
-        user_id=user["_id"],
-        user_name=user.get("name", ""),
-        action="login", ip=client_ip,
-        message=f"تسجيل دخول: {user.get('name')} ({user.get('role')})",
-        details=f"الجهاز: {device_info}",
-    )
-    # Track IP/device on every login — including managers/co_managers, not just employee check-ins.
-    _asyncio.create_task(record_device_history(
-        user["_id"], user["company_id"], "", device_info, client_ip, "", photo=None, scan_type="login",
-    ))
+    try:
+        client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "غير معروف")
+        device_info = request.headers.get("User-Agent", "غير محدد")
+        await log_activity(
+            company_id=user["company_id"],
+            user_id=user["_id"],
+            user_name=user.get("name", ""),
+            action="login", ip=client_ip,
+            message=f"تسجيل دخول: {user.get('name')} ({user.get('role')})",
+            details=f"الجهاز: {device_info}",
+        )
+        _asyncio.create_task(record_device_history(
+            user["_id"], user["company_id"], "", device_info, client_ip, "", photo=None, scan_type="login",
+        ))
+    except Exception as err:
+        logger.error(f"Login post-processing error: {err}")
+
     return {"access_token": token, "user": ser_user(user), "company": ser_company(company) if company else None}
 
 

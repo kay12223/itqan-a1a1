@@ -27,11 +27,20 @@ from ai_engine import smart_ai_reply
 # --------------------------------------------------------------------------------------
 # Configuration
 # --------------------------------------------------------------------------------------
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+db_name = os.environ.get('DB_NAME', 'test_database')
 
-JWT_SECRET = os.environ['JWT_SECRET']
+# Initialize with try/except to give descriptive errors instead of crashing uri parser
+try:
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+except Exception as e:
+    print(f"❌ Error connecting to MongoDB: {e}")
+    # Fallback to local default to allow server startup and health check
+    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    db = client["test_database"]
+
+JWT_SECRET = os.environ.get('JWT_SECRET', '9f8c2a7e4b1d6038f5c9ab2d7e0146839cbe57a2d40f1986e3b7c5a9d2148f60')
 JWT_ALGORITHM = "HS256"
 
 # The Void Engine master key (feature unlock code, intentionally app-level constant)

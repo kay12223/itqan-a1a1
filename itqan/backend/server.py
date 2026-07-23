@@ -146,6 +146,16 @@ ADDON_FEATURES = {
 # App
 # --------------------------------------------------------------------------------------
 app = FastAPI(title="Itqan - Void Edition")
+
+# إضافات الربط (CORS) هنا
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 api = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -164,7 +174,6 @@ def verify_password(plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
-
 
 def create_access_token(user_id: str, role: str) -> str:
     payload = {
@@ -5664,7 +5673,7 @@ async def get_portal_data(token: str):
 app.include_router(api, prefix="")
 
 # Serve React frontend build in production
-_FRONTEND_BUILD = ROOT_DIR.parent / "frontend" / "build"
+_FRONTEND_BUILD = Path(__file__).parent / "build"
 if _FRONTEND_BUILD.exists():
     app.mount("/static", StaticFiles(directory=str(_FRONTEND_BUILD / "static")), name="static")
 

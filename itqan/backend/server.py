@@ -735,14 +735,7 @@ async def login(body: LoginInput, request: Request):
     except Exception as err:
         logger.error(f"Login post-processing error: {err}")
 
-    return {"access_token": token, "user": ser_user(user), "company": ser_company(company) if company else None}
-
-
-@api.get("/auth/me")
-async def me(user: dict = Depends(get_current_user)):
-    company = await db.companies.find_one({"_id": user["company_id"]})
-    return {"user": ser_user(user), "company": ser_company(company) if company else None}
-
+    return {"access_token": token, "user": ser_user(user), "company": None}
 
 class UpdateMyProfile(BaseModel):
     avatar_url: Optional[str] = None
@@ -4258,13 +4251,16 @@ async def employee_report(employee_id: str, user: dict = Depends(require_manager
 # --------------------------------------------------------------------------------------
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index([("email", 1)])
-    await db.users.create_index([("company_id", 1), ("username", 1)])
-    await db.activity_logs.create_index([("company_id", 1), ("created_at", -1)])
-    await db.announcements.create_index([("company_id", 1), ("pinned", -1), ("created_at", -1)])
-    await db.ai_decision_log.create_index([("status", 1), ("expires_at", 1)])
-    await db.temp_access.create_index([("expires_at", 1), ("revoked", 1)])
-    await db.automation_rules.create_index([("company_id", 1), ("trigger", 1), ("is_active", 1)])
+    try:
+        await db.users.create_index([("email", 1)], background=True)
+        await db.users.create_index([("company_id", 1), ("username", 1)], background=True)
+        await db.activity_logs.create_index([("company_id", 1), ("created_at", -1)], background=True)
+        await db.announcements.create_index([("company_id", 1), ("pinned", -1), ("created_at", -1)], background=True)
+        await db.ai_decision_log.create_index([("status", 1), ("expires_at", 1)], background=True)
+        await db.temp_access.create_index([("expires_at", 1), ("revoked", 1)], background=True)
+        await db.automation_rules.create_index([("company_id", 1), ("trigger", 1), ("is_active", 1)], background=True)
+    except Exception as e:
+        logger.error(f"Startup index creation warning: {e}")
     # Launch background workers
     _asyncio.create_task(_expire_ai_decisions())
     _asyncio.create_task(_expire_temp_access())

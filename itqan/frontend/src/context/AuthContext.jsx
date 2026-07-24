@@ -41,7 +41,8 @@ export function AuthProvider({ children }) {
       persist(data);
       return { ok: true, user: data.user };
     } catch (e) {
-      return { ok: false, error: apiErr(e.response?.data?.detail) };
+      const msg = e.response?.data?.detail || e.response?.data?.message || e.message;
+      return { ok: false, error: apiErr(msg) };
     }
   };
 
@@ -51,7 +52,8 @@ export function AuthProvider({ children }) {
       persist(data);
       return { ok: true, user: data.user };
     } catch (e) {
-      return { ok: false, error: apiErr(e.response?.data?.detail) };
+      const msg = e.response?.data?.detail || e.response?.data?.message || e.message;
+      return { ok: false, error: apiErr(msg) };
     }
   };
 

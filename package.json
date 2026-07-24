@@ -4,5 +4,8 @@
   },
   "scripts": {
     "build": "echo Build complete - frontend files already in public/"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
   }
 }

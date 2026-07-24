@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
-export const API_BASE = BACKEND_URL ? `${BACKEND_URL}/api` : "/api";
-
+const BACKEND_URL = "https://itqan-a1a1-production.up.railway.app";
+export const API_BASE = `${BACKEND_URL}/api`;
 const api = axios.create({ baseURL: API_BASE });
 
 api.interceptors.request.use((config) => {

@@ -1680,34 +1680,53 @@ async def mark_read(user: dict = Depends(require_manager)):
     return {"ok": True}
 
 
-# --------------------------------------------------------------------------------------
+# ----------------------------------------------------
 # Void Engine (Subscriptions / Storage / Accounts unlock)
-# --------------------------------------------------------------------------------------
+# ----------------------------------------------------
+
 @api.post("/void/verify-key")
 async def void_verify(body: VoidVerify, user: dict = Depends(require_manager)):
     if body.key.strip() != VOID_MASTER_KEY:
         raise HTTPException(status_code=403, detail="❌ المفتاح السري غير صحيح")
     return {"valid": True, "options": VOID_OPTIONS, "message": "✅ تم فتح بوابة محرك الفراغ. اختر باقة واحدة لتفعيلها"}
 
-
 @api.post("/void/activate")
 async def void_activate(body: VoidActivate, request: Request, user: dict = Depends(require_manager)):
     if body.key.strip() != VOID_MASTER_KEY:
         raise HTTPException(status_code=403, detail="❌ المفتاح السري غير صحيح")
-    target_id = getattr(body, "identifier", None) or getattr(body, "email", None)
+    
+    target_id = (
+        getattr(body, "identifier", None) or 
+        getattr(body, "email", None) or 
+        getattr(body, "company_id", None) or
+        getattr(body, "id", None)
+    )
+    
+    if not target_id and hasattr(body, "dict"):
+        body_dict = body.dict()
+        target_id = body_dict.get("identifier") or body_dict.get("email") or body_dict.get("company_id")
+
+    company = None
     if target_id:
-        target_id = str(target_id).strip().lower()
-        company = await db.companies.find_one({
-            "$or": [
-                {"email": target_id},
-                {"company_id": target_id},
-                {"_id": ObjectId(target_id)} if ObjectId.is_valid(target_id) else {"_id": None}
-            ]
-        })
+        target_id_str = str(target_id).strip().lower()
+        query_conditions = [
+            {"email": target_id_str},
+            {"company_id": target_id_str},
+            {"name": target_id_str}
+        ]
+        if ObjectId.is_valid(target_id_str):
+            query_conditions.append({"_id": ObjectId(target_id_str)})
+            
+        company = await db.companies.find_one({"$or": query_conditions})
+        
+        if not company:
+            company = await db.companies.find_one({"email": {"$regex": target_id_str, "$options": "i"}})
+            
         if not company:
             raise HTTPException(status_code=400, detail="معرف غير صالح أو الإيميل غير موجود")
     else:
         company = await get_company(user)
+
     chosen = None
     category = None
     for cat, opts in VOID_OPTIONS.items():

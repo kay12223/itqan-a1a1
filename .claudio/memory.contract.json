@@ -3,7 +3,7 @@
   "workspaceId": "8622d5eb81a7ee37",
   "workspaceName": "itqan",
   "enabled": true,
-  "updatedAt": "2026-07-24T16:36:55.593Z",
+  "updatedAt": "2026-07-24T21:37:51.970Z",
   "detectedStack": {
     "languages": [
       "JavaScript/TypeScript"
@@ -44,7 +44,7 @@
         "evidence": {
           "file": "itqan/backend/.env"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       },
       {
         "id": "9728440ef2846e44",
@@ -56,7 +56,7 @@
         "evidence": {
           "file": "itqan/frontend/.env"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       },
       {
         "id": "2ebc78f410ba8a27",
@@ -68,7 +68,7 @@
         "evidence": {
           "file": "itqan/frontend/.env.example"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       },
       {
         "id": "474ae8da7291e084",
@@ -80,7 +80,7 @@
         "evidence": {
           "file": "itqan/frontend/src/constants/testIds/auth.js"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       },
       {
         "id": "5e306cc03c8de024",
@@ -92,7 +92,7 @@
         "evidence": {
           "file": "itqan/frontend/src/pages/Login.jsx"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       }
     ],
     "forbiddenActions": [
@@ -103,7 +103,7 @@
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       }
     ],
     "allowedCommands": [
@@ -117,7 +117,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       }
     ],
     "businessRules": [],
@@ -132,7 +132,7 @@
         "evidence": {
           "file": "itqan/backend/Dockerfile"
         },
-        "lastVerifiedAt": "2026-07-24T16:36:55.593Z"
+        "lastVerifiedAt": "2026-07-24T21:37:51.970Z"
       }
     ],
     "testingExpectations": [],
@@ -145,10 +145,11 @@
       "name": "repl-nix-workspace",
       "detectedStack": {
         "languages": [
+          "JavaScript/TypeScript",
           "Python"
         ],
         "frameworks": [],
-        "packageManager": "uv",
+        "packageManager": "npm",
         "uiLibraries": [],
         "orm": [],
         "authLibraries": [],
@@ -173,7 +174,7 @@
           "appliesTo": [
             "itqan"
           ],
-          "lastVerifiedAt": "2026-07-24T16:36:55.592Z"
+          "lastVerifiedAt": "2026-07-24T21:37:51.969Z"
         }
       ]
     }

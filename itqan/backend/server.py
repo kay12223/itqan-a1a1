@@ -162,7 +162,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -726,17 +726,17 @@ async def login(body: LoginInput, request: Request):
             user_id=user["_id"],
             user_name=user.get("name", ""),
             action="login", ip=client_ip,
-            message=f"تسجيل دخول: {user.get('name')} ({user.get('role')})",
-            details=f"الجهاز: {device_info}",
+            message=f"تسجيل دخول ({user.get('name')} ({user.get('role')})",
+            details=f"الجهاز : {device_info}",
         )
         _asyncio.create_task(record_device_history(
             user["_id"], user["company_id"], "", device_info, client_ip, "", photo=None, scan_type="login",
         ))
     except Exception as err:
         logger.error(f"Login post-processing error: {err}")
-
+    
+    # الـ return لازم تكون جوه الدالة وبنفس المسافة البادئة (Indentation) هنا:
     return {"access_token": token, "user": ser_user(user), "company": None}
-
 class UpdateMyProfile(BaseModel):
     avatar_url: Optional[str] = None
     name: Optional[str] = None

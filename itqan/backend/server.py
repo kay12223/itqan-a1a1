@@ -734,8 +734,7 @@ async def login(body: LoginInput, request: Request):
         ))
     except Exception as err:
         logger.error(f"Login post-processing error: {err}")
-    
-    # الـ return لازم تكون جوه الدالة وبنفس المسافة البادئة (Indentation) هنا:
+
     return {"access_token": token, "user": ser_user(user), "company": None}
 class UpdateMyProfile(BaseModel):
     avatar_url: Optional[str] = None
@@ -1695,7 +1694,20 @@ async def void_verify(body: VoidVerify, user: dict = Depends(require_manager)):
 async def void_activate(body: VoidActivate, request: Request, user: dict = Depends(require_manager)):
     if body.key.strip() != VOID_MASTER_KEY:
         raise HTTPException(status_code=403, detail="❌ المفتاح السري غير صحيح")
-    company = await get_company(user)
+    target_id = getattr(body, "identifier", None) or getattr(body, "email", None)
+    if target_id:
+        target_id = str(target_id).strip().lower()
+        company = await db.companies.find_one({
+            "$or": [
+                {"email": target_id},
+                {"company_id": target_id},
+                {"_id": ObjectId(target_id)} if ObjectId.is_valid(target_id) else {"_id": None}
+            ]
+        })
+        if not company:
+            raise HTTPException(status_code=400, detail="معرف غير صالح أو الإيميل غير موجود")
+    else:
+        company = await get_company(user)
     chosen = None
     category = None
     for cat, opts in VOID_OPTIONS.items():

@@ -743,10 +743,10 @@ async def login(body: LoginInput, request: Request):
         pass
 
     return {
-        "access_token": token,
-        "user": ser_user(user),
-        "company": ser_company(company_data) if company_data else None
-    }
+    "access_token": token,
+    "user": ser_user(user),
+    "company": ser_company(company_data) if company_data else None
+}
 class UpdateMyProfile(BaseModel):
     avatar_url: Optional[str] = None
     name: Optional[str] = None

@@ -1200,11 +1200,12 @@ async def checkin(body: CheckinInput = CheckinInput(), user: dict = Depends(get_
 
     att = company.get("attendance", {})
     now_c = cairo_now()
-    shift_name, shift = _get_active_shift(att, now_c)
-    deadline_str = shift.get("check_in_deadline", att.get("check_in_deadline", "09:30"))
-    try:
-        hh, mm = [int(x) for x in deadline_str.split(":")]
-    except Exception:
+    assigned_shift_name = user.get("shift")
+    if assigned_shift_name and assigned_shift_name in att.get("shifts", {}):
+        shift_name = assigned_shift_name
+        shift = att["shifts"][shift_name]
+    else:
+        shift_name, shift = _get_active_shift(att, now_c)
         hh, mm = 9, 30
     deadline = now_c.replace(hour=hh, minute=mm, second=0, microsecond=0)
     _s = company.get("settings", {})
@@ -2476,8 +2477,8 @@ async def my_dashboard(user: dict = Depends(get_current_user)):
     today = cairo_now().date().isoformat()
     net = user.get("monthly_salary", 0) + user.get("total_additions", 0) - user.get("total_deductions", 0)
     # Check today's log for check-in and checkout times
-    today_log = next((l for l in logs if l.get("log_date") == today and l.get("type") in ("present", "late")), None)
-    checked_in = user.get("last_checkin_date") == today
+    today_log = next((l for l in logs if l.get("log_date") == today), None)
+    checked_in = user.get("last_checkin_date") == today or bool(today_log)
     checked_out = bool(today_log and today_log.get("checkout_time")) if today_log else False
     return {
         "checked_in_today": checked_in,
@@ -3804,9 +3805,34 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
     existing_log = await db.attendance_logs.find_one({
         "user_id": user["_id"], "log_date": today, "type": {"$in": ["present", "late"]},
     })
-    if existing_log or user.get("last_checkin_date") == today:
-        return {"status": user.get("status"), "message": "سجّلت حضورك بالفعل اليوم", "already": True}
+    
+    # If already checked in today, perform CHECKOUT instead of blocking!
+    if existing_log and not existing_log.get("checkout_time"):
+        now_c = cairo_now()
+        checkout_str = now_c.strftime("%H:%M")
+        
+        # Calculate worked hours
+        check_time_str = existing_log.get("check_time", "09:00")
+        try:
+            ch_h, ch_m = map(int, check_time_str.split(":"))
+            co_h, co_m = now_c.hour, now_c.minute
+            worked_mins = (co_h * 60 + co_m) - (ch_h * 60 + ch_m)
+            worked_hours = round(max(0, worked_mins) / 60, 2)
+        except Exception:
+            worked_hours = 0.0
 
+        await db.attendance_logs.update_one(
+            {"_id": existing_log["_id"]},
+            {"$set": {"checkout_time": checkout_str, "worked_hours": worked_hours}}
+        )
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"status": "off", "last_activity": now_utc()}}
+        )
+        return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح — ساعات العمل: {worked_hours} ساعة"}
+
+    if existing_log or user.get("last_checkin_date") == today:
+        return {"status": user.get("status"), "message": "لقد قمت بتسجيل الحضور والانصراف اليوم بالفعل", "already": True}
     # Cancel any accidental absence log before registering the real checkin
     await _reverse_absence_if_exists(user["_id"], today)
 
@@ -5050,8 +5076,7 @@ async def grant_temp_access(body: TempAccessInput, user: dict = Depends(require_
     # Apply elevated role + scoped permissions temporarily
     await db.users.update_one(
         {"_id": emp["_id"]},
-        {"$set": {"role": body.elevated_role, "allowed_modules": body.allowed_modules, "temp_access_id": str(res.inserted_id)}},
-    )
+{"$set": {"allowed_modules": body.allowed_modules, "temp_access_id": str(res.inserted_id)}},    )
     scope_msg = (
         "كل الصلاحيات" if body.allowed_modules is None
         else "بدون صلاحيات إضافية" if not body.allowed_modules
@@ -5380,10 +5405,12 @@ async def _expire_temp_access():
                 original_allowed_modules = grant.get("original_allowed_modules")
                 if emp_id:
                     await db.users.update_one(
-                        {"_id": emp_id, "temp_access_id": str(grant["_id"])},
-                        {"$set": {"role": original_role, "allowed_modules": original_allowed_modules},
-                         "$unset": {"temp_access_id": ""}}
-                    )
+                {"_id": emp_id},
+                {
+                    "$set": {"allowed_modules": original_allowed_modules},
+                    "$unset": {"temp_access_id": ""}
+                }
+            )
                 await db.temp_access.update_one({"_id": grant["_id"]}, {"$set": {"revoked": True}})
         except Exception:
             pass

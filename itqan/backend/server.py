@@ -735,7 +735,18 @@ async def login(body: LoginInput, request: Request):
     except Exception as err:
         logger.error(f"Login post-processing error: {err}")
 
-    return {"access_token": token, "user": ser_user(user), "company": None}
+    company_data = None
+    try:
+        if "company_id" in user and user["company_id"]:
+            company_data = await get_company(user)
+    except Exception:
+        pass
+
+    return {
+        "access_token": token,
+        "user": ser_user(user),
+        "company": ser_company(company_data) if company_data else None
+    }
 class UpdateMyProfile(BaseModel):
     avatar_url: Optional[str] = None
     name: Optional[str] = None

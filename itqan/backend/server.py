@@ -2512,7 +2512,28 @@ async def my_dashboard(user: dict = Depends(get_current_user)):
             "deduction_amount": l.get("deduction_amount", 0),
         } for l in logs[:15]],
     }
-
+@api.post("/auth/checkout")
+async def checkout(user: dict = Depends(get_current_user)):
+    today_str = cairo_now().date().isoformat()
+    
+    # البحث عن سجل الحضور الخاص بيوم اليوم للمستخدم
+    today_log = await db.attendance_logs.find_one({
+        "user_id": str(user["_id"]),
+        "log_date": today_str
+    })
+    
+    if today_log:
+        # تحديث وقت الخروج وحالة الانصراف
+        await db.attendance_logs.update_one(
+            {"_id": today_log["_id"]},
+            {"$set": {
+                "checkout_time": datetime.now().strftime("%I:%M %p"),
+                "status": "منصرف"
+            }}
+        )
+        return {"ok": True, "message": "تم تسجيل الانصراف بنجاح"}
+    else:
+        raise HTTPException(status_code=400, detail="لم يتم تسجيل الحضور لهذا اليوم أولاً")
 
 # --------------------------------------------------------------------------------------
 # Loans (Employee debt management)

@@ -3864,11 +3864,7 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
         )
         return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح - ساعات العمل: {worked_hours} ساعة"}
 
-    if existing_log or user.get("last_checkin_date") == today:
-        return {"status": user.get("status"), "message": "لقد قمت بتسجيل الحضور والانصراف اليوم بالفعل", "already": True}
-
-    if existing_log or user.get("last_checkin_date") == today:
-        return {"status": user.get("status"), "message": "لقد قمت بتسجيل الحضور والانصراف اليوم بالفعل", "already": True}
+    
     # Cancel any accidental absence log before registering the real checkin
     await _reverse_absence_if_exists(user["_id"], today)
 

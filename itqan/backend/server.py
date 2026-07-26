@@ -3835,15 +3835,15 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
 
     today = cairo_now().date().isoformat()
     existing_log = await db.attendance_logs.find_one({
-        "user_id": user["_id"], "log_date": today, "type": {"$in": ["present", "late"]},
-        "checkout_time": {"$exists": False}
+        "user_id": user["_id"], 
+        "log_date": today, 
+        "type": {"$in": ["present", "late"]}
     })
-    
-    # If already checked in today, perform CHECKOUT instead of blocking!
+
     if existing_log and not existing_log.get("checkout_time"):
         now_c = cairo_now()
         checkout_str = now_c.strftime("%H:%M")
-        
+
         # Calculate worked hours
         check_time_str = existing_log.get("check_time", "09:00")
         try:
@@ -3862,7 +3862,10 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
             {"_id": user["_id"]},
             {"$set": {"status": "off", "last_activity": now_utc()}}
         )
-        return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح — ساعات العمل: {worked_hours} ساعة"}
+        return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح - ساعات العمل: {worked_hours} ساعة"}
+
+    if existing_log or user.get("last_checkin_date") == today:
+        return {"status": user.get("status"), "message": "لقد قمت بتسجيل الحضور والانصراف اليوم بالفعل", "already": True}
 
     if existing_log or user.get("last_checkin_date") == today:
         return {"status": user.get("status"), "message": "لقد قمت بتسجيل الحضور والانصراف اليوم بالفعل", "already": True}

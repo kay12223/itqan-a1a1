@@ -3863,7 +3863,6 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
             {"$set": {"status": "off", "last_activity": now_utc()}}
         )
         return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح - ساعات العمل: {worked_hours} ساعة"}
-
     
     # Cancel any accidental absence log before registering the real checkin
     await _reverse_absence_if_exists(user["_id"], today)

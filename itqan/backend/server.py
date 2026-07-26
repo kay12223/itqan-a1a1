@@ -3835,9 +3835,9 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
 
     today = cairo_now().date().isoformat()
     existing_log = await db.attendance_logs.find_one({
-        "user_id": user["_id"], 
-        "log_date": today, 
-        "type": {"$in": ["present", "late"]}
+        "user_id": user["_id"],
+        "log_date": today,
+        "checkout_time": {"$exists": False}
     })
 
     if existing_log and not existing_log.get("checkout_time"):

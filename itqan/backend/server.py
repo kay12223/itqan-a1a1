@@ -3137,7 +3137,27 @@ async def delete_work_log(wid: str, user: dict = Depends(get_current_user)):
         q["status"] = "pending"
     await db.work_logs.delete_one(q)
     return {"ok": True}
+class CheckoutInput(BaseModel):
+    checkout_time: Optional[str] = None
 
+@api.post("/attendance/checkout")
+async def employee_checkout(body: CheckoutInput, user: dict = Depends(get_current_user)):
+    today = cairo_now().date().isoformat()
+    existing_log = await db.attendance.find_one({
+        "company_id": user["company_id"],
+        "user_id": user["_id"],
+        "log_date": today
+    })
+    
+    if not existing_log:
+        raise HTTPException(status_code=400, detail="لم تقم بتسجيل الحضور اليوم لتتمكن من الانصراف")
+    
+    checkout_t = body.checkout_time or cairo_now().strftime("%H:%M")
+    await db.attendance.update_one(
+        {"_id": existing_log["_id"]},
+        {"$set": {"checkout_time": checkout_t}}
+    )
+    return {"ok": True, "message": "تم تسجيل الانصراف بنجاح"}
 
 # --------------------------------------------------------------------------------------
 # Announcements (Notice Board) — inspired by WorkDo Dash
@@ -3856,12 +3876,21 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
 
         await db.attendance_logs.update_one(
             {"_id": existing_log["_id"]},
-            {"$set": {"checkout_time": checkout_str, "worked_hours": worked_hours}}
+            {
+                "$set": {
+                    "checkout_time": checkout_str,
+                    "worked_hours": worked_hours,
+                    "checkout_date": today,
+                    "status": "checked_out"
+                }
+            }
         )
+
         await db.users.update_one(
             {"_id": user["_id"]},
             {"$set": {"status": "off", "last_activity": now_utc()}}
         )
+
         return {"status": "off", "message": f"تم تسجيل الانصراف بنجاح - ساعات العمل: {worked_hours} ساعة"}
     
     # Cancel any accidental absence log before registering the real checkin

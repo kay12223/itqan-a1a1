@@ -156,29 +156,27 @@ function CameraStep({ token, authToken, userName, onDone, onError }) {
     return c.toDataURL("image/jpeg", 0.8);
   }, []);
 
-  const submit = useCallback(async (photo) => {
+ const submitCheckout = useCallback(async (photo) => {
     stop();
     const netInfo = getNetworkInfo();
     try {
-      const { data } = await axios.post(`${API}/attendance/qr-checkin`,
-        {
-          token,
-          device_info: getDeviceInfoFull(),
-          device_id: getDeviceId(),
-          location: locStr,
-          photo,
-          network_name: netInfo.label,
-          network_type: netInfo.type,   // wifi | cellular | ethernet | unknown
-        },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
-      onDone(photo, data);
+        const { data } = await axios.post(`${API}/auth/checkout`,
+            {
+                token,
+                device_info: getDeviceInfoFull(),
+                device_id: getDeviceId(),
+                location: locStr,
+                photo,
+                timestamp: new Date().toISOString()
+            },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        onDone(photo, data);
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      onError(typeof detail === "string" ? detail : "حدث خطأ — حاول مجدداً");
+        const detail = err.response?.data?.detail;
+        onError(typeof detail === "string" ? detail : "حدث خطأ أثناء تسجيل الانصراف");
     }
-  }, [token, authToken, locStr, stop, onDone, onError]);
-
+}, [token, authToken, locStr, stop, onDone, onError]);
   const startLiveness = useCallback((video, sid) => {
     const sample = sampleRef.current;
     if (!sample) return;

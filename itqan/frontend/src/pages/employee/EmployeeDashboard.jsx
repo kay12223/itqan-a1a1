@@ -193,7 +193,16 @@ export default function EmployeeDashboard() {
       ) : (
         <DesktopQRCheckin user={user} data={data} onCheckinDone={load} />
       )}
-
+{/* زرار الانصراف */}
+      <GlassCard className="flex items-center justify-between border-cyan-500/30">
+        <div>
+          <p className="font-display text-lg font-bold">تسجيل الانصراف</p>
+          <p className="text-xs text-muted-foreground">اضغط هنا عند مغادرة مقر العمل لتسجيل الانصراف</p>
+        </div>
+        <PrimaryButton onClick={() => window.location.href = "/attend-checkout"}>
+          تسجيل الانصراف
+        </PrimaryButton>
+      </GlassCard>
       {/* Stats */}
       {data && (
         <>

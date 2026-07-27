@@ -1,13 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle2, Wallet, TrendingDown, TrendingUp, CalendarCheck,
-  Clock, XCircle, Camera, QrCode, Smartphone, Monitor, MapPin,
-  User, AlertTriangle, RefreshCw,
+  Clock, XCircle, Camera, QrCode, RefreshCw,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import api, { apiErr } from "@/lib/apiClient";
+import api from "@/lib/apiClient";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader, GlassCard, StatCard, PrimaryButton } from "@/components/Kit";
 import { formatTime12h } from "@/lib/utils";
@@ -164,7 +162,7 @@ function EmployeeQRCode({ checked }) {
   );
 }
 
-function MobileQRCheckin({ data, onCheckinDone }) {
+function MobileQRCheckin({ data }) {
   const checked = data?.checked_in_today;
   return <EmployeeQRCode checked={checked} />;
 }
@@ -177,8 +175,24 @@ export default function EmployeeDashboard() {
   const load = () => api.get("/me/dashboard").then((r) => setData(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
+  // دالة تسجيل الانصراف وإبلاغ الإدارة
+  const handleCheckout = async () => {
+    try {
+      const response = await api.post("/attendance/checkout", {
+        checkout_time: new Date().toISOString()
+      });
+      if (response.status === 200 || response.data) {
+        toast.success("تم تسجيل الانصراف وإبلاغ الإدارة بنجاح!");
+        load();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "حدث خطأ أثناء تسجيل الانصراف");
+    }
+  };
+
   const fmt = (v) => `${(v || 0).toLocaleString()} ج.م`;
-return (
+
+  return (
     <div className="space-y-5">
       <PageHeader
         title={`أهلاً بك ${user?.name || ""} 👋`}
@@ -188,18 +202,18 @@ return (
 
       {/* Checkin Card - smart by device */}
       {isMobile ? (
-        <MobileQRcheckin data={data} onCheckinDone={load} />
+        <MobileQRCheckin data={data} />
       ) : (
-        <DesktopQRcheckin user={user} data={data} onCheckinDone={load} />
+        <DesktopQRCheckin user={user} data={data} />
       )}
 
-      {/* زرار الانصراف المستقل */}
+      {/* زرار الانصراف المستقل المربوط بالباك إند */}
       <GlassCard className="flex items-center justify-between border-cyan-500/30">
         <div>
           <p className="font-display text-lg font-bold">تسجيل الانصراف</p>
-          <p className="text-xs text-muted-foreground">اضغط هنا عند مغادرة مقر العمل لتسجيل الانصراف</p>
+          <p className="text-xs text-muted-foreground">اضغط هنا عند مغادرة مقر العمل لتسجيل الانصراف وإبلاغ المدير</p>
         </div>
-        <PrimaryButton onClick={() => window.location.href = "/attend-checkout"}>
+        <PrimaryButton onClick={handleCheckout}>
           تسجيل الانصراف
         </PrimaryButton>
       </GlassCard>

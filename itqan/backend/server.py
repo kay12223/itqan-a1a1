@@ -3127,7 +3127,33 @@ async def approve_work_log(wid: str, user: dict = Depends(require_manager)):
         {"$set": {"status": "approved", "approved_by": user.get("name")}},
     )
     return {"ok": True}
-
+@api.post("/attendance/checkout")
+async def employee_checkout(data: dict, current_user: dict = Depends(get_current_user)):
+    today_date = datetime.now().date()
+    
+    attendance_log = await db.attendance_logs.find_one({
+        "employee_id": current_user.get("id") or current_user.get("_id"),
+        "log_date": str(today_date)
+    })
+    
+    if not attendance_log:
+        raise HTTPException(status_code=400, detail="لا يوجد سجل حضور مسجل لهذا اليوم لتسجيل الانصراف عليه")
+    
+    await db.attendance_logs.update_one(
+        {"_id": attendance_log.get("id") or attendance_log.get("_id")},
+        {"$set": {"checkout_time": data.get("checkout_time"), "status_checkout": "checked_out"}}
+    )
+    
+    notification_payload = {
+        "manager_id": attendance_log.get("manager_id"),
+        "title": "انصراف موظف",
+        "message": f"قام الموظف {current_user.get('name', 'موظف')} بتسجيل الانصراف ومغادرة مقر العمل.",
+        "timestamp": datetime.now(),
+        "read": False
+    }
+    await db.notifications.insert_one(notification_payload)
+    
+    return {"status": "success", "message": "تم تسجيل الانصراف وإبلاغ الإدارة بنجاح"}
 
 @api.delete("/work-logs/{wid}")
 async def delete_work_log(wid: str, user: dict = Depends(get_current_user)):

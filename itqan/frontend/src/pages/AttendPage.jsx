@@ -160,8 +160,7 @@ function CameraStep({ token, authToken, userName, onDone, onError }) {
     stop();
     const netInfo = getNetworkInfo();
     try {
-        const { data } = await axios.post(`${API}/auth/checkout`,
-            {
+const { data } = await axios.post(`${API}/attendance/checkout`,            {
                 token,
                 device_info: getDeviceInfoFull(),
                 device_id: getDeviceId(),

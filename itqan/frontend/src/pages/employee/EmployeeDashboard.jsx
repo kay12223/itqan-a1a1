@@ -178,22 +178,22 @@ export default function EmployeeDashboard() {
   useEffect(() => { load(); }, []);
 
   const fmt = (v) => `${(v || 0).toLocaleString()} ج.م`;
-
-  return (
+return (
     <div className="space-y-5">
       <PageHeader
-        title={`أهلاً ${user?.name || ""} 👋`}
-        subtitle={isMobile ? "سجّل حضورك بمسح QR في مكان العمل" : "سجّل حضورك وتابع راتبك وأدائك"}
+        title={`أهلاً بك ${user?.name || ""} 👋`}
+        subtitle={isMobile ? "في مكان العمل QR سجل حضورك بمسح" : "سجل حضورك وتابع راتبك وأدائك"}
         icon={CheckCircle2}
       />
 
-      {/* Checkin Card — smart by device */}
+      {/* Checkin Card - smart by device */}
       {isMobile ? (
-        <MobileQRCheckin data={data} onCheckinDone={load} />
+        <MobileQRcheckin data={data} onCheckinDone={load} />
       ) : (
-        <DesktopQRCheckin user={user} data={data} onCheckinDone={load} />
+        <DesktopQRcheckin user={user} data={data} onCheckinDone={load} />
       )}
-{/* زرار الانصراف */}
+
+      {/* زرار الانصراف المستقل */}
       <GlassCard className="flex items-center justify-between border-cyan-500/30">
         <div>
           <p className="font-display text-lg font-bold">تسجيل الانصراف</p>
@@ -203,6 +203,7 @@ export default function EmployeeDashboard() {
           تسجيل الانصراف
         </PrimaryButton>
       </GlassCard>
+
       {/* Stats */}
       {data && (
         <>

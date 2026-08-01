@@ -1151,6 +1151,83 @@ async def list_transactions(user: dict = Depends(get_current_user)):
 # --------------------------------------------------------------------------------------
 class CheckinInput(BaseModel):
     photo: Optional[str] = None
+    check_in_time: Optional[str] = None
+
+
+class CheckoutInput(BaseModel):
+    check_out_time: Optional[str] = None
+
+
+class AttendanceReportFilter(BaseModel):
+    employee_id: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+def calculate_total_hours(check_in_time, check_out_time):
+    if not check_in_time or not check_out_time:
+        return None
+
+    def _to_datetime(value):
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return None
+            if "T" in text or "-" in text:
+                try:
+                    parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+                except ValueError:
+                    return None
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=CAIRO_TZ)
+                return parsed.astimezone(CAIRO_TZ)
+            if ":" in text and len(text.split(":")) >= 2:
+                parts = text.split(":")
+                hour = int(parts[0])
+                minute = int(parts[1])
+                today = cairo_now().date()
+                return datetime(today.year, today.month, today.day, hour, minute, tzinfo=CAIRO_TZ)
+        return None
+
+    check_in_dt = _to_datetime(check_in_time)
+    check_out_dt = _to_datetime(check_out_time)
+    if not check_in_dt or not check_out_dt:
+        return None
+
+    diff_hours = (check_out_dt - check_in_dt).total_seconds() / 3600
+    return round(max(0.0, diff_hours), 2)
+
+
+def get_worked_hours_from_log(log: dict):
+    for key in ("total_hours", "worked_hours"):
+        value = log.get(key)
+        if isinstance(value, (int, float)):
+            return round(float(value), 2)
+    check_in = log.get("check_in_time") or log.get("check_time")
+    check_out = log.get("check_out_time") or log.get("checkout_time")
+    if check_in and check_out:
+        return calculate_total_hours(check_in, check_out)
+    return None
+
+
+def normalize_attendance_date_range(start_date: Optional[str], end_date: Optional[str]):
+    if not start_date and not end_date:
+        return None, None
+
+    for value in (start_date, end_date):
+        if value in (None, ""):
+            continue
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("تاريخ غير صالح. استخدم yyyy-mm-dd") from exc
+
+    if start_date and end_date and start_date > end_date:
+        raise ValueError("تاريخ البداية لا يمكن أن يكون بعد تاريخ النهاية")
+
+    return start_date, end_date
 
 
 def _get_active_shift(att: dict, now_c) -> tuple:
@@ -1177,11 +1254,10 @@ def _get_active_shift(att: dict, now_c) -> tuple:
         else:
             if start_min <= now_min < end_min:
                 return name, sh
-    # No window matched — pick first enabled shift as best guess
     for name, sh in shifts.items():
         if sh.get("enabled"):
             return name, sh
-    return "default", att                      # absolute fallback
+    return "default", att
 
 
 async def _reverse_absence_if_exists(user_id, today: str):
@@ -1202,22 +1278,39 @@ async def _reverse_absence_if_exists(user_id, today: str):
 @api.post("/attendance/checkin")
 async def checkin(body: CheckinInput = CheckinInput(), user: dict = Depends(get_current_user)):
     company = await get_company(user)
-    today = cairo_now().date().isoformat()
-    if user.get("last_checkin_date") == today:
-        return {"status": user.get("status"), "message": "سجّلت حضورك بالفعل اليوم", "already": True}
+    now_c = cairo_now()
+    today = now_c.date().isoformat()
 
-    # Cancel any accidental absence log before registering the real checkin
+    existing = await db.attendance_logs.find_one({
+        "company_id": user["company_id"],
+        "user_id": user["_id"],
+        "$or": [{"date": today}, {"log_date": today}],
+    })
+
+    if existing and existing.get("check_in_time"):
+        return {
+            "status": existing.get("status") or existing.get("type"),
+            "message": "سجّلت حضورك بالفعل اليوم",
+            "already": True,
+            "check_in_time": existing.get("check_in_time"),
+        }
+
     await _reverse_absence_if_exists(user["_id"], today)
 
     att = company.get("attendance", {})
-    now_c = cairo_now()
     assigned_shift_name = user.get("shift")
     if assigned_shift_name and assigned_shift_name in att.get("shifts", {}):
         shift_name = assigned_shift_name
         shift = att["shifts"][shift_name]
     else:
         shift_name, shift = _get_active_shift(att, now_c)
+
+    deadline_str = att.get("check_in_deadline", "09:30")
+    try:
+        hh, mm = [int(x) for x in deadline_str.split(":")]
+    except Exception:
         hh, mm = 9, 30
+
     deadline = now_c.replace(hour=hh, minute=mm, second=0, microsecond=0)
     _s = company.get("settings", {})
     _grace = int(_s.get("grace_minutes", 0)) if _s.get("allow_late_check_grace") else 0
@@ -1226,18 +1319,33 @@ async def checkin(body: CheckinInput = CheckinInput(), user: dict = Depends(get_
     status = "late" if is_late else "present"
     deduction = shift.get("late_deduction", att.get("late_deduction", 50)) if is_late else 0
 
-    log = {
+    check_in_time = body.check_in_time or now_c.strftime("%H:%M")
+    log_payload = {
         "company_id": user["company_id"],
+        "employee_id": str(user["_id"]),
         "user_id": user["_id"],
+        "date": today,
         "log_date": today,
         "type": status,
+        "status": status,
         "shift": shift_name,
         "deduction_amount": deduction,
-        "check_time": now_c.strftime("%H:%M"),
+        "check_in_time": check_in_time,
+        "check_out_time": None,
+        "total_hours": None,
+        "check_time": check_in_time,
         "photo": body.photo,
         "created_at": now_utc(),
     }
-    await db.attendance_logs.insert_one(log)
+
+    if existing:
+        await db.attendance_logs.update_one(
+            {"_id": existing["_id"]},
+            {"$set": log_payload},
+        )
+    else:
+        await db.attendance_logs.insert_one(log_payload)
+
     update = {"last_checkin_date": today, "status": status, "last_activity": now_utc()}
     inc = {}
     if deduction:
@@ -1250,7 +1358,50 @@ async def checkin(body: CheckinInput = CheckinInput(), user: dict = Depends(get_
             "message": f"⏰ تأخّر {user.get('name')} عن الحضور (سجّل {now_c.strftime('%H:%M')}). خصم {deduction} ج.م",
             "severity": "warning", "is_read": False, "created_at": now_utc(),
         })
-    return {"status": status, "message": "تم تسجيل الحضور بنجاح" if not is_late else f"تم التسجيل متأخراً - خصم {deduction} ج.م", "deduction": deduction}
+
+    return {
+        "status": status,
+        "message": "تم تسجيل الحضور بنجاح" if not is_late else f"تم التسجيل متأخراً - خصم {deduction} ج.م",
+        "deduction": deduction,
+        "check_in_time": check_in_time,
+    }
+
+
+@api.post("/attendance/checkout")
+async def checkout(body: CheckoutInput, user: dict = Depends(get_current_user)):
+    today = cairo_now().date().isoformat()
+    existing = await db.attendance_logs.find_one({
+        "company_id": user["company_id"],
+        "user_id": user["_id"],
+        "$or": [{"date": today}, {"log_date": today}],
+    })
+
+    if not existing:
+        raise HTTPException(status_code=400, detail="لم تقم بتسجيل الحضور اليوم لتتمكن من الانصراف")
+    if existing.get("check_out_time"):
+        raise HTTPException(status_code=400, detail="تم تسجيل الانصراف مسبقاً لهذا اليوم")
+    if not existing.get("check_in_time"):
+        raise HTTPException(status_code=400, detail="لا يوجد حضور مسجل أساساً لهذا اليوم")
+
+    check_out_time = body.check_out_time or cairo_now().strftime("%H:%M")
+    total_hours = calculate_total_hours(existing.get("check_in_time"), check_out_time)
+
+    await db.attendance_logs.update_one(
+        {"_id": existing["_id"]},
+        {"$set": {
+            "check_out_time": check_out_time,
+            "total_hours": total_hours,
+            "check_time": existing.get("check_in_time"),
+            "updated_at": now_utc(),
+        }},
+    )
+
+    return {
+        "ok": True,
+        "message": "تم تسجيل الانصراف بنجاح",
+        "check_out_time": check_out_time,
+        "total_hours": total_hours,
+    }
 
 
 @api.post("/attendance/process-absences")
@@ -1298,10 +1449,77 @@ async def attendance_logs(user: dict = Depends(get_current_user)):
             name_cache[uid] = u.get("name") if u else "—"
         out.append({
             "id": str(l["_id"]), "user_id": str(uid), "user_name": name_cache[uid],
-            "log_date": l.get("log_date"), "type": l.get("type"),
-            "deduction_amount": l.get("deduction_amount", 0), "check_time": l.get("check_time"),
+            "log_date": l.get("date") or l.get("log_date"),
+            "date": l.get("date") or l.get("log_date"),
+            "type": l.get("type") or l.get("status"),
+            "status": l.get("status") or l.get("type"),
+            "deduction_amount": l.get("deduction_amount", 0),
+            "check_in_time": l.get("check_in_time"),
+            "check_out_time": l.get("check_out_time"),
+            "total_hours": l.get("total_hours"),
+            "check_time": l.get("check_time"),
             "photo": l.get("photo"),
             "created_at": l["created_at"].isoformat() if isinstance(l.get("created_at"), datetime) else l.get("created_at"),
+        })
+    return out
+
+
+@api.get("/attendance/report")
+async def attendance_report(
+    employee_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
+    if user["role"] not in ("manager", "co_manager") and employee_id and str(employee_id) != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="غير مسموح لك بعرض تقارير موظفين آخرين")
+
+    if employee_id and user["role"] not in ("manager", "co_manager"):
+        employee_id = str(user["_id"])
+
+    try:
+        start_date, end_date = normalize_attendance_date_range(start_date, end_date)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    query = {"company_id": user["company_id"]}
+    if employee_id:
+        try:
+            query["user_id"] = safe_object_id(employee_id)
+        except HTTPException:
+            query["user_id"] = employee_id
+
+    if start_date or end_date:
+        query["$or"] = []
+        if start_date or end_date:
+            date_filter = {}
+            if start_date:
+                date_filter["$gte"] = start_date
+            if end_date:
+                date_filter["$lte"] = end_date
+            query["$or"].append({"date": date_filter})
+            query["$or"].append({"log_date": date_filter})
+
+    logs = await db.attendance_logs.find(query).sort("created_at", -1).to_list(500)
+    name_cache = {}
+    out = []
+    for l in logs:
+        uid = l.get("user_id")
+        if uid not in name_cache:
+            u = await db.users.find_one({"_id": uid})
+            name_cache[uid] = u.get("name") if u else "—"
+        out.append({
+            "id": str(l["_id"]),
+            "employee_id": str(l.get("employee_id") or uid),
+            "user_id": str(uid),
+            "user_name": name_cache[uid],
+            "date": l.get("date") or l.get("log_date"),
+            "check_in_time": l.get("check_in_time"),
+            "check_out_time": l.get("check_out_time"),
+            "status": l.get("status") or l.get("type"),
+            "type": l.get("type") or l.get("status"),
+            "total_hours": l.get("total_hours"),
+            "deduction_amount": l.get("deduction_amount", 0),
         })
     return out
 
@@ -3890,22 +4108,20 @@ async def employee_self_checkin_public(body: EmployeeSelfCheckinInput, request: 
         now_c = cairo_now()
         checkout_str = now_c.strftime("%H:%M")
 
-        # Calculate worked hours
-        check_time_str = existing_log.get("check_time", "09:00")
-        try:
-            ch_h, ch_m = map(int, check_time_str.split(":"))
-            co_h, co_m = now_c.hour, now_c.minute
-            worked_mins = (co_h * 60 + co_m) - (ch_h * 60 + ch_m)
-            worked_hours = round(max(0, worked_mins) / 60, 2)
-        except Exception:
-            worked_hours = 0.0
+        worked_hours = get_worked_hours_from_log({
+            "check_in_time": existing_log.get("check_in_time") or existing_log.get("check_time"),
+            "check_out_time": checkout_str,
+            "checkout_time": checkout_str,
+        })
 
         await db.attendance_logs.update_one(
             {"_id": existing_log["_id"]},
             {
                 "$set": {
                     "checkout_time": checkout_str,
+                    "check_out_time": checkout_str,
                     "worked_hours": worked_hours,
+                    "total_hours": worked_hours,
                     "checkout_date": today,
                     "status": "checked_out"
                 }
@@ -4616,22 +4832,19 @@ async def do_checkout(user: dict, body: "CheckoutInput", client_ip: str, forced_
     now_c = cairo_now()
     checkout_time = now_c.strftime("%H:%M")
 
-    worked_hours = None
-    checkin_time_str = checkin_log.get("check_time")
-    if checkin_time_str:
-        try:
-            ci_h, ci_m = [int(x) for x in checkin_time_str.split(":")]
-            co_h, co_m = [int(x) for x in checkout_time.split(":")]
-            worked_minutes = (co_h * 60 + co_m) - (ci_h * 60 + ci_m)
-            worked_hours = round(max(0, worked_minutes) / 60, 2)
-        except Exception:
-            pass
+    worked_hours = get_worked_hours_from_log({
+        "check_in_time": checkin_log.get("check_in_time") or checkin_log.get("check_time"),
+        "check_out_time": checkout_time,
+        "checkout_time": checkout_time,
+    })
 
     await db.attendance_logs.update_one(
         {"_id": checkin_log["_id"]},
         {"$set": {
             "checkout_time": checkout_time,
+            "check_out_time": checkout_time,
             "worked_hours": worked_hours,
+            "total_hours": worked_hours,
             "checkout_photo": body.photo,
             "checkout_location": body.location or "",
             "checkout_ip_address": client_ip,
@@ -5162,7 +5375,15 @@ async def grant_temp_access(body: TempAccessInput, user: dict = Depends(require_
     # Apply elevated role + scoped permissions temporarily
     await db.users.update_one(
         {"_id": emp["_id"]},
-{"$set": {"allowed_modules": body.allowed_modules, "temp_access_id": str(res.inserted_id)}},    )
+        {"$set": {
+            "role": body.elevated_role,
+            "allowed_modules": body.allowed_modules,
+            "temp_access_id": str(res.inserted_id),
+            "temp_access_active": True,
+            "temp_access_expires_at": expires_at,
+            "temp_access_reason": body.reason,
+        }}
+    )
     scope_msg = (
         "كل الصلاحيات" if body.allowed_modules is None
         else "بدون صلاحيات إضافية" if not body.allowed_modules
@@ -5182,7 +5403,7 @@ async def revoke_temp_access(gid: str, user: dict = Depends(require_company_feat
     # Restore original role + permissions
     await db.users.update_one({"_id": grant["employee_id"]},
         {"$set": {"role": grant.get("original_role","member"), "allowed_modules": grant.get("original_allowed_modules")},
-         "$unset": {"temp_access_id": ""}})
+         "$unset": {"temp_access_id": "", "temp_access_active": "", "temp_access_expires_at": "", "temp_access_reason": ""}})
     await log_activity(company_id=user["company_id"], user_id=user["_id"], user_name=user.get("name",""),
                        action="temp_access_revoked",
                        message=f"إلغاء صلاحية مؤقتة لـ {grant.get('employee_name','')}")
@@ -5491,12 +5712,12 @@ async def _expire_temp_access():
                 original_allowed_modules = grant.get("original_allowed_modules")
                 if emp_id:
                     await db.users.update_one(
-                {"_id": emp_id},
-                {
-                    "$set": {"allowed_modules": original_allowed_modules},
-                    "$unset": {"temp_access_id": ""}
-                }
-            )
+                        {"_id": emp_id},
+                        {
+                            "$set": {"role": original_role, "allowed_modules": original_allowed_modules},
+                            "$unset": {"temp_access_id": "", "temp_access_active": "", "temp_access_expires_at": "", "temp_access_reason": ""}
+                        }
+                    )
                 await db.temp_access.update_one({"_id": grant["_id"]}, {"$set": {"revoked": True}})
         except Exception:
             pass
@@ -5520,37 +5741,41 @@ async def compliance_report(user: dict = Depends(require_manager)):
     crew = await db.users.find({"company_id": user["company_id"], "role": "member", "is_active": True}).to_list(500)
     records = []
     for m in crew:
-        # attendance last 30 days — use attendance_logs (authoritative)
         att = await db.attendance_logs.find(
             {"user_id": m["_id"], "company_id": user["company_id"],
              "created_at": {"$gte": from_dt}}
         ).to_list(100)
         total_hours = 0.0
+        attended_days = 0
         for a in att:
-            if a.get("check_out"):
-                try:
-                    ci = a["check_in"] if isinstance(a.get("check_in"), datetime) else \
-                         datetime.fromisoformat(a["check_in"]) if isinstance(a.get("check_in"), str) else None
-                    co = a["check_out"] if isinstance(a.get("check_out"), datetime) else \
-                         datetime.fromisoformat(a["check_out"]) if isinstance(a.get("check_out"), str) else None
-                    if ci and co:
-                        total_hours += max(0, (co - ci).total_seconds() / 3600)
-                except Exception:
-                    pass
+            log_type = (a.get("type") or a.get("status") or "")
+            has_attendance_marker = log_type in {"present", "late", "checked_out", "off"}
+            has_checkin = bool(a.get("check_in_time") or a.get("check_time"))
+            if has_attendance_marker or has_checkin:
+                attended_days += 1
+                hours = get_worked_hours_from_log(a)
+                if hours is not None:
+                    total_hours += hours
         leaves = await db.leaves.count_documents(
             {"user_id": str(m["_id"]), "company_id": str(user["company_id"]), "status": "approved"}
         )
+        if attended_days:
+            avg_hours = round(total_hours / attended_days, 1)
+            compliant = avg_hours >= 7.5 or total_hours == 0.0
+        else:
+            avg_hours = 0.0
+            compliant = True
         records.append({
             "employee_id": str(m["_id"]),
             "name": m.get("name", ""),
             "job_title": m.get("job_title", ""),
-            "days_attended": len(att),
+            "days_attended": attended_days,
             "total_hours_30d": round(total_hours, 1),
-            "avg_hours_per_day": round(total_hours / max(len(att), 1), 1),
+            "avg_hours_per_day": avg_hours,
             "leaves_taken": leaves,
             "leave_quota": leave_quota,
             "leave_remaining": max(0, leave_quota - leaves),
-            "compliant": total_hours / max(len(att), 1) >= 7.5 if att else True,
+            "compliant": compliant,
         })
     return {
         "period": "آخر 30 يوم",

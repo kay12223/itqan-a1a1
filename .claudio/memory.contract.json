@@ -3,7 +3,7 @@
   "workspaceId": "8622d5eb81a7ee37",
   "workspaceName": "itqan",
   "enabled": true,
-  "updatedAt": "2026-07-29T18:45:20.683Z",
+  "updatedAt": "2026-08-01T20:06:56.158Z",
   "detectedStack": {
     "languages": [
       "JavaScript/TypeScript"
@@ -46,7 +46,7 @@
         "evidence": {
           "file": "itqan/backend/.env"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       },
       {
         "id": "9728440ef2846e44",
@@ -58,7 +58,7 @@
         "evidence": {
           "file": "itqan/frontend/.env"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       },
       {
         "id": "2ebc78f410ba8a27",
@@ -70,7 +70,7 @@
         "evidence": {
           "file": "itqan/frontend/.env.example"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       },
       {
         "id": "474ae8da7291e084",
@@ -82,7 +82,7 @@
         "evidence": {
           "file": "itqan/frontend/src/constants/testIds/auth.js"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       },
       {
         "id": "5e306cc03c8de024",
@@ -94,7 +94,7 @@
         "evidence": {
           "file": "itqan/frontend/src/pages/Login.jsx"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       }
     ],
     "forbiddenActions": [
@@ -105,7 +105,7 @@
         "source": "repo_detected",
         "confidence": "confirmed",
         "scope": "workspace",
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       }
     ],
     "allowedCommands": [
@@ -119,7 +119,7 @@
         "evidence": {
           "file": "package.json"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       }
     ],
     "businessRules": [],
@@ -134,7 +134,7 @@
         "evidence": {
           "file": "itqan/backend/Dockerfile"
         },
-        "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+        "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
       }
     ],
     "testingExpectations": [],
@@ -176,7 +176,7 @@
           "appliesTo": [
             "itqan"
           ],
-          "lastVerifiedAt": "2026-07-29T18:45:20.683Z"
+          "lastVerifiedAt": "2026-08-01T20:06:56.158Z"
         }
       ]
     }

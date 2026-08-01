@@ -177,6 +177,17 @@ def detect_category(message: str) -> str:
 
 
 def generate_contextual_response(message: str, user: dict, company: dict, history: list) -> str:
+    msg = message.lower()
+    msg = msg.replace("ة", "ه").replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+
+    if ("موظف" in msg or "عامل" in msg or "شخص" in msg) and (
+        "اضاف" in msg or "إضاف" in msg or "ضيف" in msg or "انشاء" in msg or "تسجيل" in msg or "ادخل" in msg or "أدخل" in msg
+    ):
+        return (
+            "لإضافة موظف جديد: افتح قسم إدارة الموظفين، اضغط إضافة موظف، ثم أدخل الاسم، اسم المستخدم، كلمة المرور، الوظيفة والراتب. "
+            "بعد الحفظ سيصبح الموظف جاهزًا للدخول إلى النظام."
+        )
+
     category = detect_category(message)
     responses = AI_RESPONSES.get(category, AI_RESPONSES["default"])
     base = random.choice(responses)
